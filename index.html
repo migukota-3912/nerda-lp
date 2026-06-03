@@ -115,7 +115,7 @@
 <body>
 
 <div id="ambient">
-  <svg id="ambientLogo" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 257.3 198.34" preserveAspectRatio="xMidYMid meet">
+  <svg id="ambientLogo" xmlns="http://www.w3.org/2000/svg" viewBox="115 45 130 125" preserveAspectRatio="xMidYMid meet">
     <path d="M73.73,152.31S76.08,14.3,99.5,1.65c37.51-20.26,60.98,170.92,98.49,150.67C221.41,139.66,223.76,1.65,223.76,1.65"/>
     <path d="M68.54,161.14s2.35-138.02,25.77-150.67c37.51-20.26,60.98,170.92,98.49,150.67,23.42-12.65,25.77-150.67,25.77-150.67"/>
     <path d="M65.17,161.14s2.35-138.02,25.77-150.67c37.51-20.26,60.98,170.92,98.49,150.67,23.42-12.65,25.77-150.67,25.77-150.67"/>
@@ -407,8 +407,8 @@ function frame(now){
     markWrap.style.opacity='1';nmFillG.style.opacity='1';markSub.style.opacity='1';
   }  // if(p<0.999)
 
-  /* 背景アンビエント：各線が波打つ（Scene3透けは毎フレーム、本文p>=0.999は2フレームに1回＝軽め） */
-  if(p>0.85 && (p<0.999 || (fc&1)===0)){
+  /* 背景アンビエント：各線が波打つ（モバイルは負荷対策で静止／PCはScene3毎フレーム・本文は2フレームに1回） */
+  if(p>0.85 && !COARSE && (p<0.999 || (fc&1)===0)){
     const Ta=8000, ka=1.6*Math.PI*2/N_VB.w, aa=((now)%Ta)/Ta*Math.PI*2;
     ambItems.forEach(it=>{
       const ph=(it.wi/ambItems.length)*Math.PI*2*3;
