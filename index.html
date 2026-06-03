@@ -335,7 +335,7 @@ function frame(now){
   fc++;
   const p=progress;
   if(p<0.999){  // 本文域(p=1)では演出を止めて軽量化
-  if(stage.style.display==='none')stage.style.display='';  // Scene域に戻ったらstage復活
+  if(logo.style.display==='none')logo.style.display='';  // Scene域に戻ったら波線(#logo)復活
 
   /* env: N→直線（0.58→0.80でほどける） */
   const env=1-smooth(0.58,0.80,p);
@@ -407,7 +407,7 @@ function frame(now){
     items.forEach(it=>{it.el.style.opacity='0';});
     nmStrokes.forEach(s=>{s.el.style.strokeDashoffset='0';});
     markWrap.style.opacity='1';nmFillG.style.opacity='1';markSub.style.opacity='1';
-    if(COARSE)stage.style.display='none';  // 本文域：モバイルのみScene大SVGを破棄しメモリ解放（PCは余裕があるので維持＝nerdaの余韻を保つ）
+    if(COARSE)logo.style.display='none';  // 本文域：モバイルはScene波線(#logo)のみ破棄しメモリ解放。nerda(markWrap)は残して余韻を保つ
   }  // if(p<0.999)
 
   /* 背景アンビエント：各線が波打つ（モバイルは負荷対策で静止／PCはScene3毎フレーム・本文は2フレームに1回） */
