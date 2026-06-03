@@ -21,7 +21,7 @@
     overflow:hidden;pointer-events:none;}
   #ambientLogo{position:absolute;left:50%;top:50%;
     width:135vmax;height:auto;opacity:.20;overflow:visible;
-    animation:drift 16s ease-in-out infinite alternate;will-change:transform;}
+    animation:drift 16s ease-in-out infinite alternate;}
   @keyframes drift{
     /* 冒頭ズームの余韻：線に寄る→引く（スケールの呼吸）中心 */
     0%{transform:translate(-50%,-50%) scale(1.0) rotate(0deg);}
@@ -30,9 +30,11 @@
   #ambientLogo path{fill:none;stroke:var(--accent);stroke-width:.4px;
     stroke-miterlimit:10;vector-effect:non-scaling-stroke;mix-blend-mode:screen;}
   @media (prefers-reduced-motion: reduce){#ambientLogo{animation:none;}}
+  /* モバイルはメモリ削減：背景SVGを縮小＋driftアニメ停止（GPUレイヤー常駐を回避） */
+  @media (pointer:coarse){#ambientLogo{width:100vmax;animation:none;}}
 
   /* ===== スクロール演出ゾーン ===== */
-  #scrollytell{height:700vh;position:relative;z-index:1;}
+  #scrollytell{height:1000vh;position:relative;z-index:1;}
   #stage{position:sticky;top:0;height:100vh;height:100svh;width:100%;
     display:flex;align-items:center;justify-content:center;overflow:hidden;
     background:var(--bg);}
@@ -308,14 +310,17 @@ const ZC={cx:128.65,cy:88},ZW=66;
 const VB1={x:ZC.cx-ZW/2,y:ZC.cy-(ZW*N_VB.h/N_VB.w)/2,w:ZW,h:ZW*N_VB.h/N_VB.w};
 
 /* スクロール進行度（#p= で固定可：デバッグ用） */
-let progress=0,forced=null;
+let progress=0,forced=null,running=true;  // running=本文域でループを止める制御フラグ
 function readForced(){const m=location.hash.match(/p=([0-9.]+)/);forced=m?parseFloat(m[1]):null;}
 readForced();addEventListener('hashchange',readForced);
 function updateProgress(){
-  if(forced!=null){progress=clamp(forced,0,1);return;}
-  const tell=document.getElementById('scrollytell');
-  const total=tell.offsetHeight-window.innerHeight;
-  progress=clamp((-tell.getBoundingClientRect().top)/total,0,1);
+  if(forced!=null){progress=clamp(forced,0,1);}
+  else{
+    const tell=document.getElementById('scrollytell');
+    const total=tell.offsetHeight-window.innerHeight;
+    progress=clamp((-tell.getBoundingClientRect().top)/total,0,1);
+  }
+  if(progress<0.999 && !running){running=true;requestAnimationFrame(frame);}  // 本文から戻ったらループ再開
 }
 addEventListener('scroll',updateProgress,{passive:true});
 addEventListener('resize',updateProgress);
@@ -398,6 +403,7 @@ function frame(now){
     });
   }
 
+  if(progress>=0.999){running=false;return;}  // 本文域：ループ完全停止（戻ると updateProgress で再開）
   requestAnimationFrame(frame);
 }
 requestAnimationFrame(frame);
