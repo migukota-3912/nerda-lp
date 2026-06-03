@@ -20,7 +20,7 @@
   #ambient{position:fixed;inset:0;z-index:0;background:var(--dark);
     overflow:hidden;pointer-events:none;}
   #ambientLogo{position:absolute;left:50%;top:50%;
-    width:135vmax;height:auto;opacity:.20;overflow:visible;
+    width:90vw;height:auto;opacity:.20;overflow:visible;
     animation:drift 16s ease-in-out infinite alternate;}
   @keyframes drift{
     /* 冒頭ズームの余韻：線に寄る→引く（スケールの呼吸）中心 */
@@ -31,12 +31,12 @@
     stroke-miterlimit:10;vector-effect:non-scaling-stroke;mix-blend-mode:screen;}
   @media (prefers-reduced-motion: reduce){#ambientLogo{animation:none;}}
   /* モバイルはメモリ削減：背景SVGを縮小＋driftアニメ停止（GPUレイヤー常駐を回避） */
-  @media (pointer:coarse){#ambientLogo{width:100vmax;animation:none;}
-    #logo{filter:none;} body.glow #nerdaMark{filter:none;}}  /* モバイルは発光フィルタOFF＝GPU負荷減（金線自体は残る） */
+  @media (pointer:coarse),(max-width:768px){#ambientLogo{width:100vw;animation:none;}
+    #logo{filter:none;} body.glow #nerdaMark{filter:none;}}  /* モバイルは発光フィルタOFF＋背景配置調整（金線は残す。driftは負荷高なので停止維持） */
 
   /* ===== スクロール演出ゾーン ===== */
   #scrollytell{height:1000vh;position:relative;z-index:1;}
-  #stage{position:sticky;top:0;height:100vh;height:100svh;width:100%;
+  #stage{position:sticky;top:0;height:100vh;height:100dvh;width:100%;
     display:flex;align-items:center;justify-content:center;overflow:hidden;
     background:var(--bg);}
 
@@ -311,7 +311,7 @@ const ZC={cx:128.65,cy:88},ZW=66;
 const VB1={x:ZC.cx-ZW/2,y:ZC.cy-(ZW*N_VB.h/N_VB.w)/2,w:ZW,h:ZW*N_VB.h/N_VB.w};
 
 /* スクロール進行度（#p= で固定可：デバッグ用） */
-let progress=0,forced=null,running=true;  // running=本文域でループを止める制御フラグ
+let progress=0,forced=null;
 function readForced(){const m=location.hash.match(/p=([0-9.]+)/);forced=m?parseFloat(m[1]):null;}
 readForced();addEventListener('hashchange',readForced);
 function updateProgress(){
@@ -321,7 +321,6 @@ function updateProgress(){
     const total=tell.offsetHeight-window.innerHeight;
     progress=clamp((-tell.getBoundingClientRect().top)/total,0,1);
   }
-  if(progress<0.999 && !running){running=true;requestAnimationFrame(frame);}  // 本文から戻ったらループ再開
 }
 addEventListener('scroll',updateProgress,{passive:true});
 addEventListener('resize',updateProgress);
@@ -330,7 +329,9 @@ updateProgress();
 /* ===== メインループ ===== */
 let t0=performance.now();
 let lastBlend='';  // blend mode は切替時のみ適用（毎フレームの querySelectorAll を回避）
+let fc=0;          // フレームカウンタ（本文域でアンビエントを2フレームに1回へ間引く）
 function frame(now){
+  fc++;
   const p=progress;
   if(p<0.999){  // 本文域(p=1)では演出を止めて軽量化
 
@@ -394,10 +395,20 @@ function frame(now){
   markWrap.style.opacity=smooth(0.78,0.86,p).toFixed(3);
   nmFillG.style.opacity=smooth(0.93,1.0,p).toFixed(3);
   markSub.style.opacity=smooth(0.95,1.0,p).toFixed(3);
+  } else {
+    /* 本文域：演出を完了状態で固定（直リロード/ジャンプでも背景が崩れない） */
+    const root=document.documentElement.style;
+    root.setProperty('--bg',rgb(C.bgDark));
+    root.setProperty('--stroke',rgb(C.stDark));root.setProperty('--ink',rgb(C.stDark));
+    stage.style.background='transparent';
+    wordmark.style.opacity='0';hint.style.opacity='0';copy2.style.opacity='0';
+    items.forEach(it=>{it.el.style.opacity='0';});
+    nmStrokes.forEach(s=>{s.el.style.strokeDashoffset='0';});
+    markWrap.style.opacity='1';nmFillG.style.opacity='1';markSub.style.opacity='1';
   }  // if(p<0.999)
 
-  /* 背景アンビエント：各線が波打つ（stageが透ける p>0.85 以降だけ更新＝軽量） */
-  if(p>0.85){
+  /* 背景アンビエント：各線が波打つ（Scene3透けは毎フレーム、本文p>=0.999は2フレームに1回＝軽め） */
+  if(p>0.85 && (p<0.999 || (fc&1)===0)){
     const Ta=8000, ka=1.6*Math.PI*2/N_VB.w, aa=((now)%Ta)/Ta*Math.PI*2;
     ambItems.forEach(it=>{
       const ph=(it.wi/ambItems.length)*Math.PI*2*3;
@@ -413,8 +424,7 @@ function frame(now){
     });
   }
 
-  if(progress>=0.999){running=false;return;}  // 本文域：ループ完全停止（戻ると updateProgress で再開）
-  requestAnimationFrame(frame);
+  requestAnimationFrame(frame);  // 常時継続（本文では重処理skip＋アンビエント間引きで軽め）
 }
 requestAnimationFrame(frame);
 
