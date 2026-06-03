@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>NERDA</title>
+<style>
+  :root{
+    --bg:#f4f1ea; --stroke:#231815; --ink:#231815; --glow:rgba(201,162,74,.55);
+    --fg:#231815; --dark:#0a0a0c; --darkink:#e9e4d6; --gold:#c9a24a;
+    --accent:#e9e4d6;            /* 既定=白(ニュートラル)版 */
+  }
+  body.glow{--accent:#c9a24a;}   /* ?glow=発光(ゴールド)版 */
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;background:var(--dark);overflow-x:clip;
+    font-family:'Inter',-apple-system,'Zen Kaku Gothic New',system-ui,sans-serif;
+    color:var(--darkink);-webkit-font-smoothing:antialiased;}
+
+  /* 背景アンビエント（本文・CTAで漂う波線の残響） */
+  #ambient{position:fixed;inset:0;z-index:0;background:var(--dark);
+    overflow:hidden;pointer-events:none;}
+  #ambientLogo{position:absolute;left:50%;top:50%;
+    width:135vmax;height:auto;opacity:.20;overflow:visible;
+    animation:drift 16s ease-in-out infinite alternate;will-change:transform;}
+  @keyframes drift{
+    /* 冒頭ズームの余韻：線に寄る→引く（スケールの呼吸）中心 */
+    0%{transform:translate(-50%,-50%) scale(1.0) rotate(0deg);}
+    100%{transform:translate(-50%,-50%) scale(1.25) rotate(2deg);}
+  }
+  #ambientLogo path{fill:none;stroke:var(--accent);stroke-width:.4px;
+    stroke-miterlimit:10;vector-effect:non-scaling-stroke;mix-blend-mode:screen;}
+  @media (prefers-reduced-motion: reduce){#ambientLogo{animation:none;}}
+
+  /* ===== スクロール演出ゾーン ===== */
+  #scrollytell{height:700vh;position:relative;z-index:1;}
+  #stage{position:sticky;top:0;height:100vh;height:100svh;width:100%;
+    display:flex;align-items:center;justify-content:center;overflow:hidden;
+    background:var(--bg);}
+
+  #logo{height:78vh;height:78svh;width:auto;max-width:94vw;overflow:visible;
+    filter:drop-shadow(0 0 1.6px var(--glow));}
+  #logo .cls-1{fill:none;stroke:var(--stroke);stroke-width:.42px;
+    stroke-miterlimit:10;mix-blend-mode:multiply;vector-effect:non-scaling-stroke;}
+  #logo .cls-3{fill:var(--ink);stroke:none;}
+
+  /* Scene 3：立ち上がる nerda ワードマーク */
+  #markWrap{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
+    width:clamp(190px,42vw,420px);pointer-events:none;text-align:center;}
+  #nerdaMark{width:100%;height:auto;overflow:visible;}
+  body.glow #nerdaMark{filter:drop-shadow(0 0 2.5px rgba(201,162,74,.6));}
+  #nerdaMark .nm-stroke{fill:none;stroke:var(--darkink);stroke-width:.5px;
+    vector-effect:non-scaling-stroke;}
+  #nerdaMark .nm-fill{fill:var(--darkink);stroke:none;opacity:0;}
+  #markSub{margin-top:18px;font-size:clamp(9px,2.2vw,12px);letter-spacing:.34em;
+    text-transform:uppercase;color:var(--accent);opacity:0;
+    font-family:'JetBrains Mono','SF Mono',monospace;}
+
+  /* Scene 2 コピー */
+  .overlay{position:absolute;inset:0;display:flex;flex-direction:column;
+    align-items:center;justify-content:center;pointer-events:none;
+    text-align:center;padding:0 24px;opacity:0;}
+  .overlay .en{font-size:clamp(22px,5.2vw,46px);font-weight:600;letter-spacing:-.01em;
+    line-height:1.15;color:var(--darkink);}
+  .overlay .jp{margin-top:16px;font-size:clamp(11px,2.6vw,15px);letter-spacing:.18em;
+    color:var(--accent);}
+
+  /* scroll ヒント */
+  #hint{position:fixed;left:50%;bottom:max(28px,env(safe-area-inset-bottom));
+    transform:translateX(-50%);font-size:11px;letter-spacing:.3em;
+    font-family:'JetBrains Mono','SF Mono',monospace;
+    text-transform:uppercase;opacity:.55;z-index:5;}
+  #hint .arrow{display:block;margin-top:8px;animation:bob 1.8s ease-in-out infinite;}
+  @keyframes bob{0%,100%{transform:translateY(0);opacity:.5;}50%{transform:translateY(5px);opacity:1;}}
+
+  /* ===== 本文 ===== */
+  #concept{background:transparent;position:relative;z-index:1;padding:clamp(80px,16vh,180px) 24px clamp(60px,10vh,120px);}
+  .wrap{max-width:680px;margin:0 auto;}
+  .lead{font-size:clamp(22px,4.6vw,34px);font-weight:600;line-height:1.4;
+    letter-spacing:-.01em;color:var(--darkink);}
+  .lead .jp{display:block;margin-top:14px;font-size:clamp(13px,2.6vw,16px);font-weight:400;
+    line-height:1.8;letter-spacing:.04em;color:#9b968c;}
+  .body{margin-top:40px;font-size:clamp(15px,2.4vw,18px);line-height:1.6;color:#cfcabd;}
+  .body .jp{display:block;margin-top:10px;font-size:clamp(12px,2.2vw,14px);
+    line-height:1.85;color:#86827a;}
+
+  /* 3 pillars */
+  .pillars{margin-top:clamp(52px,8vh,88px);display:grid;gap:clamp(34px,6vh,52px);}
+  .pillar{padding:0;}
+  .pillar .k{font-size:clamp(18px,3.4vw,22px);font-weight:600;color:var(--accent);
+    letter-spacing:.02em;}
+  .pillar .k small{color:#9b968c;font-weight:400;font-size:.62em;margin-left:10px;letter-spacing:.06em;}
+  .pillar .d{margin-top:10px;font-size:14px;line-height:1.55;color:#cfcabd;}
+  .pillar .d .jp{display:block;margin-top:6px;font-size:12.5px;line-height:1.7;color:#86827a;}
+
+  /* CTA */
+  #cta{background:transparent;position:relative;z-index:1;text-align:center;
+    padding:clamp(40px,8vh,90px) 24px clamp(90px,16vh,160px);}
+  #cta .label{font-size:clamp(13px,2.6vw,16px);color:#9b968c;letter-spacing:.06em;}
+  #cta .label .jp{display:block;margin-top:6px;font-size:12px;color:#6f6b63;letter-spacing:.1em;}
+  .igbtn{display:inline-flex;align-items:center;gap:12px;margin-top:24px;
+    padding:15px 30px;border-radius:30px;text-decoration:none;
+    background:var(--accent);color:#0a0a0c;font-weight:600;font-size:15px;letter-spacing:.02em;
+    transition:transform .2s ease,opacity .2s ease;}
+  .igbtn:hover{opacity:.88;transform:translateY(-1px);}
+  .igbtn svg{width:20px;height:20px;}
+  #cta .foot{margin-top:54px;font-size:11px;letter-spacing:.32em;color:#4a473f;
+    text-transform:uppercase;font-family:'JetBrains Mono','SF Mono',monospace;}
+
+  @media (prefers-reduced-motion: reduce){#hint .arrow{animation:none;}}
+</style>
+</head>
+<body>
+
+<div id="ambient">
+  <svg id="ambientLogo" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 257.3 198.34" preserveAspectRatio="xMidYMid meet">
+    <path d="M73.73,152.31S76.08,14.3,99.5,1.65c37.51-20.26,60.98,170.92,98.49,150.67C221.41,139.66,223.76,1.65,223.76,1.65"/>
+    <path d="M68.54,161.14s2.35-138.02,25.77-150.67c37.51-20.26,60.98,170.92,98.49,150.67,23.42-12.65,25.77-150.67,25.77-150.67"/>
+    <path d="M65.17,161.14s2.35-138.02,25.77-150.67c37.51-20.26,60.98,170.92,98.49,150.67,23.42-12.65,25.77-150.67,25.77-150.67"/>
+    <path d="M50.51,154.32S52.86,16.3,76.28,3.65c37.51-20.26,60.98,170.92,98.49,150.67,23.42-12.65,25.77-150.67,25.77-150.67"/>
+    <path d="M90.26,161.54s2.35-138.02,25.77-150.67c37.51-20.26,60.98,170.92,98.49,150.67,23.42-12.65,25.77-150.67,25.77-150.67"/>
+    <path d="M83.1,156.33S85.44,18.31,108.86,5.66c37.51-20.26,60.98,170.92,98.49,150.67,23.42-12.65,25.77-150.67,25.77-150.67"/>
+    <path d="M27.15,163.95S29.49,25.93,52.91,13.28c37.51-20.26,60.98,170.92,98.49,150.67,23.42-12.65,25.77-150.67,25.77-150.67"/>
+    <path d="M19.67,120.24s3.53-55.97,38.79-61.1c56.47-8.22,91.79,69.31,148.26,61.1,35.26-5.13,38.79-61.1,38.79-61.1"/>
+    <path d="M.14,114.88s3.53-55.97,38.79-61.1c56.47-8.22,91.79,69.31,148.26,61.1,35.26-5.13,38.79-61.1,38.79-61.1"/>
+    <path d="M31.32,152.74s3.53-55.97,38.79-61.1c56.47-8.22,91.79,69.31,148.26,61.1,35.26-5.13,38.79-61.1,38.79-61.1"/>
+    <path d="M47.49,133.75s3.27-89.14,35.9-97.31c52.27-13.08,84.96,110.39,137.23,97.31,32.63-8.17,35.9-97.31,35.9-97.31"/>
+    <path d="M33.29,121.27s3.27-89.14,35.9-97.31c52.27-13.08,84.96,110.39,137.23,97.31,32.63-8.17,35.9-97.31,35.9-97.31"/>
+    <path d="M24.14,145.88s3.53-93.13,38.79-101.67c56.47-13.67,91.79,115.34,148.26,101.67,35.26-8.54,38.79-101.67,38.79-101.67"/>
+    <path d="M41.47,161.54S43.82,23.53,67.24,10.88c37.51-20.26,60.98,170.92,98.49,150.67,23.42-12.65,25.77-150.67,25.77-150.67"/>
+    <path d="M77.67,163.55s2.35-138.02,25.77-150.67c37.51-20.26,60.98,170.92,98.49,150.67,23.42-12.65,25.77-150.67,25.77-150.67"/>
+  </svg>
+</div>
+
+<div id="scrollytell">
+  <div id="stage">
+    <svg id="logo" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 257.3 198.34" preserveAspectRatio="xMidYMid meet">
+      <g id="waves">
+        <path class="cls-1" d="M73.73,152.31S76.08,14.3,99.5,1.65c37.51-20.26,60.98,170.92,98.49,150.67C221.41,139.66,223.76,1.65,223.76,1.65"/>
+        <path class="cls-1" d="M68.54,161.14s2.35-138.02,25.77-150.67c37.51-20.26,60.98,170.92,98.49,150.67,23.42-12.65,25.77-150.67,25.77-150.67"/>
+        <path class="cls-1" d="M65.17,161.14s2.35-138.02,25.77-150.67c37.51-20.26,60.98,170.92,98.49,150.67,23.42-12.65,25.77-150.67,25.77-150.67"/>
+        <path class="cls-1" d="M50.51,154.32S52.86,16.3,76.28,3.65c37.51-20.26,60.98,170.92,98.49,150.67,23.42-12.65,25.77-150.67,25.77-150.67"/>
+        <path class="cls-1" d="M90.26,161.54s2.35-138.02,25.77-150.67c37.51-20.26,60.98,170.92,98.49,150.67,23.42-12.65,25.77-150.67,25.77-150.67"/>
+        <path class="cls-1" d="M83.1,156.33S85.44,18.31,108.86,5.66c37.51-20.26,60.98,170.92,98.49,150.67,23.42-12.65,25.77-150.67,25.77-150.67"/>
+        <path class="cls-1" d="M27.15,163.95S29.49,25.93,52.91,13.28c37.51-20.26,60.98,170.92,98.49,150.67,23.42-12.65,25.77-150.67,25.77-150.67"/>
+        <path class="cls-1" d="M19.67,120.24s3.53-55.97,38.79-61.1c56.47-8.22,91.79,69.31,148.26,61.1,35.26-5.13,38.79-61.1,38.79-61.1"/>
+        <path class="cls-1" d="M.14,114.88s3.53-55.97,38.79-61.1c56.47-8.22,91.79,69.31,148.26,61.1,35.26-5.13,38.79-61.1,38.79-61.1"/>
+        <path class="cls-1" d="M31.32,152.74s3.53-55.97,38.79-61.1c56.47-8.22,91.79,69.31,148.26,61.1,35.26-5.13,38.79-61.1,38.79-61.1"/>
+        <path class="cls-1" d="M47.49,133.75s3.27-89.14,35.9-97.31c52.27-13.08,84.96,110.39,137.23,97.31,32.63-8.17,35.9-97.31,35.9-97.31"/>
+        <path class="cls-1" d="M33.29,121.27s3.27-89.14,35.9-97.31c52.27-13.08,84.96,110.39,137.23,97.31,32.63-8.17,35.9-97.31,35.9-97.31"/>
+        <path class="cls-1" d="M24.14,145.88s3.53-93.13,38.79-101.67c56.47-13.67,91.79,115.34,148.26,101.67,35.26-8.54,38.79-101.67,38.79-101.67"/>
+        <path class="cls-1" d="M41.47,161.54S43.82,23.53,67.24,10.88c37.51-20.26,60.98,170.92,98.49,150.67,23.42-12.65,25.77-150.67,25.77-150.67"/>
+        <path class="cls-1" d="M77.67,163.55s2.35-138.02,25.77-150.67c37.51-20.26,60.98,170.92,98.49,150.67,23.42-12.65,25.77-150.67,25.77-150.67"/>
+      </g>
+      <g id="wordmark">
+        <path class="cls-3" d="M115.33,198.11v-6.32c0-2.06-.45-3.43-2.66-3.43s-3.2,1.55-3.2,4.61v5.14h-.74v-10.19h.74v1.63h.23l.09-.08c.6-1.13,1.69-1.78,2.98-1.78,2.32,0,3.31,1.24,3.31,4.14v6.28h-.74Z"/>
+        <path class="cls-3" d="M125.75,198.34c-2.86,0-4.94-2.25-4.94-5.35s2.12-5.3,4.94-5.3,4.83,2.16,4.89,5.27h-9.09v.28c0,2.61,1.78,4.43,4.34,4.43,1.57,0,2.93-.85,3.75-2.33l.62.36c-.98,1.73-2.53,2.64-4.5,2.64ZM125.75,188.36c-2.13,0-4.06,1.73-4.2,3.78v.15s8.37,0,8.37,0l-.02-.16c-.27-2.15-2.05-3.77-4.15-3.77Z"/>
+        <path class="cls-3" d="M135.35,198.11v-10.19h.74v1.36h.23l.08-.08c.45-1,1.17-1.5,2.14-1.5.28,0,.57.06.9.18l-.39.65c-.22-.11-.45-.16-.67-.16-2.02,0-2.3,1.97-2.3,4.11v5.64h-.74Z"/>
+        <path class="cls-3" d="M147.19,198.34c-2.96,0-5.03-2.22-5.03-5.39s2.05-5.25,4.98-5.25c1.61,0,3.11.76,3.92,1.98l.04.06h.22l.05-.14v-9.9h.74v18.42h-.74v-1.88h-.22l-.09.07c-.73,1.24-2.25,2.04-3.87,2.04ZM147.07,188.36c-2.26,0-4.18,2.1-4.18,4.58,0,2.69,1.83,4.72,4.27,4.72s4.27-1.99,4.27-4.83c0-2.63-1.79-4.47-4.36-4.47Z"/>
+        <path class="cls-3" d="M161.92,198.34c-2.96,0-5.03-2.22-5.03-5.39s2.05-5.25,4.98-5.25c1.61,0,3.11.76,3.92,1.98l.04.06h.22l.05-.14v-1.67h.74v10.19h-.74v-1.88h-.22l-.09.07c-.72,1.22-2.28,2.04-3.87,2.04ZM161.8,188.36c-2.3,0-4.18,2.06-4.18,4.58,0,2.69,1.83,4.72,4.27,4.72s4.27-1.99,4.27-4.83c0-2.63-1.79-4.47-4.36-4.47Z"/>
+      </g>
+    </svg>
+
+    <!-- Scene 3：立ち上がる nerda -->
+    <div id="markWrap">
+      <svg id="nerdaMark" xmlns="http://www.w3.org/2000/svg" viewBox="105 176 65 24" preserveAspectRatio="xMidYMid meet">
+        <g id="nmStrokeG">
+          <path class="nm-stroke" d="M115.33,198.11v-6.32c0-2.06-.45-3.43-2.66-3.43s-3.2,1.55-3.2,4.61v5.14h-.74v-10.19h.74v1.63h.23l.09-.08c.6-1.13,1.69-1.78,2.98-1.78,2.32,0,3.31,1.24,3.31,4.14v6.28h-.74Z"/>
+          <path class="nm-stroke" d="M125.75,198.34c-2.86,0-4.94-2.25-4.94-5.35s2.12-5.3,4.94-5.3,4.83,2.16,4.89,5.27h-9.09v.28c0,2.61,1.78,4.43,4.34,4.43,1.57,0,2.93-.85,3.75-2.33l.62.36c-.98,1.73-2.53,2.64-4.5,2.64ZM125.75,188.36c-2.13,0-4.06,1.73-4.2,3.78v.15s8.37,0,8.37,0l-.02-.16c-.27-2.15-2.05-3.77-4.15-3.77Z"/>
+          <path class="nm-stroke" d="M135.35,198.11v-10.19h.74v1.36h.23l.08-.08c.45-1,1.17-1.5,2.14-1.5.28,0,.57.06.9.18l-.39.65c-.22-.11-.45-.16-.67-.16-2.02,0-2.3,1.97-2.3,4.11v5.64h-.74Z"/>
+          <path class="nm-stroke" d="M147.19,198.34c-2.96,0-5.03-2.22-5.03-5.39s2.05-5.25,4.98-5.25c1.61,0,3.11.76,3.92,1.98l.04.06h.22l.05-.14v-9.9h.74v18.42h-.74v-1.88h-.22l-.09.07c-.73,1.24-2.25,2.04-3.87,2.04ZM147.07,188.36c-2.26,0-4.18,2.1-4.18,4.58,0,2.69,1.83,4.72,4.27,4.72s4.27-1.99,4.27-4.83c0-2.63-1.79-4.47-4.36-4.47Z"/>
+          <path class="nm-stroke" d="M161.92,198.34c-2.96,0-5.03-2.22-5.03-5.39s2.05-5.25,4.98-5.25c1.61,0,3.11.76,3.92,1.98l.04.06h.22l.05-.14v-1.67h.74v10.19h-.74v-1.88h-.22l-.09.07c-.72,1.22-2.28,2.04-3.87,2.04ZM161.8,188.36c-2.3,0-4.18,2.06-4.18,4.58,0,2.69,1.83,4.72,4.27,4.72s4.27-1.99,4.27-4.83c0-2.63-1.79-4.47-4.36-4.47Z"/>
+        </g>
+        <g id="nmFillG">
+          <path class="nm-fill" d="M115.33,198.11v-6.32c0-2.06-.45-3.43-2.66-3.43s-3.2,1.55-3.2,4.61v5.14h-.74v-10.19h.74v1.63h.23l.09-.08c.6-1.13,1.69-1.78,2.98-1.78,2.32,0,3.31,1.24,3.31,4.14v6.28h-.74Z"/>
+          <path class="nm-fill" d="M125.75,198.34c-2.86,0-4.94-2.25-4.94-5.35s2.12-5.3,4.94-5.3,4.83,2.16,4.89,5.27h-9.09v.28c0,2.61,1.78,4.43,4.34,4.43,1.57,0,2.93-.85,3.75-2.33l.62.36c-.98,1.73-2.53,2.64-4.5,2.64ZM125.75,188.36c-2.13,0-4.06,1.73-4.2,3.78v.15s8.37,0,8.37,0l-.02-.16c-.27-2.15-2.05-3.77-4.15-3.77Z"/>
+          <path class="nm-fill" d="M135.35,198.11v-10.19h.74v1.36h.23l.08-.08c.45-1,1.17-1.5,2.14-1.5.28,0,.57.06.9.18l-.39.65c-.22-.11-.45-.16-.67-.16-2.02,0-2.3,1.97-2.3,4.11v5.64h-.74Z"/>
+          <path class="nm-fill" d="M147.19,198.34c-2.96,0-5.03-2.22-5.03-5.39s2.05-5.25,4.98-5.25c1.61,0,3.11.76,3.92,1.98l.04.06h.22l.05-.14v-9.9h.74v18.42h-.74v-1.88h-.22l-.09.07c-.73,1.24-2.25,2.04-3.87,2.04ZM147.07,188.36c-2.26,0-4.18,2.1-4.18,4.58,0,2.69,1.83,4.72,4.27,4.72s4.27-1.99,4.27-4.83c0-2.63-1.79-4.47-4.36-4.47Z"/>
+          <path class="nm-fill" d="M161.92,198.34c-2.96,0-5.03-2.22-5.03-5.39s2.05-5.25,4.98-5.25c1.61,0,3.11.76,3.92,1.98l.04.06h.22l.05-.14v-1.67h.74v10.19h-.74v-1.88h-.22l-.09.07c-.72,1.22-2.28,2.04-3.87,2.04ZM161.8,188.36c-2.3,0-4.18,2.06-4.18,4.58,0,2.69,1.83,4.72,4.27,4.72s4.27-1.99,4.27-4.83c0-2.63-1.79-4.47-4.36-4.47Z"/>
+        </g>
+      </svg>
+      <div id="markSub">Made by curiosity</div>
+    </div>
+
+    <!-- Scene 2 コピー -->
+    <div class="overlay" id="copy2">
+      <div class="en">Creation,<br>open to all.</div>
+      <div class="jp">つくることは、ひらかれた。</div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== 本文 ===== -->
+<section id="concept">
+  <div class="wrap">
+    <p class="lead">
+      We are NERDA — a band of nerds<br>expressing ourselves through AI.
+      <span class="jp">私たちはAIを使って自己表現を行う、ナードな集団 NERDA。</span>
+    </p>
+    <p class="body">
+      We chase a value beyond money, and create by staying true to how we feel —
+      curiosity, play, and the sheer urge to make. A pure, delicate, professional collective.
+      <span class="jp">お金ではない「何か」に価値を見出し、自分たちの気持ちに素直に創作する。それは、好奇心であり、遊びであり、つくりたいという衝動そのもの。純粋で、繊細な、プロフェッショナル集団です。</span>
+    </p>
+
+    <div class="pillars">
+      <div class="pillar">
+        <div class="k">Curiosity<small>好奇心</small></div>
+        <div class="d">We dive into whatever sparks our interest.
+          <span class="jp">自分が興味を惹かれるモノ・コトに、とことん取り組む。</span></div>
+      </div>
+      <div class="pillar">
+        <div class="k">Play<small>遊び</small></div>
+        <div class="d">We make with a light heart, no pressure.
+          <span class="jp">肩肘張らず、気軽な気持ちで作る。</span></div>
+      </div>
+      <div class="pillar">
+        <div class="k">Prototype<small>試作</small></div>
+        <div class="d">It doesn't have to be finished.
+          <span class="jp">完成していなくてもいい。未完成でも、発表する。</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== CTA ===== -->
+<section id="cta">
+  <div class="label">See what we make.
+    <span class="jp">私たちが作っているものを、見てください。</span>
+  </div>
+  <a class="igbtn" id="igLink" href="https://www.instagram.com/nerda___/" target="_blank" rel="noopener">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <rect x="2" y="2" width="20" height="20" rx="5" ry="5"/>
+      <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/>
+      <line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/>
+    </svg>
+    Instagram
+  </a>
+  <div class="foot">NERDA</div>
+</section>
+
+<!-- scroll ヒント -->
+<div id="hint">SCROLL<span class="arrow">↓</span></div>
+
+<script>
+/* ===== v03ロジック移植：波線を点列化して進行波で波打たせる ＋ v04風 N→直線モーフ ===== */
+/* 既定=発光(ゴールド)版。?white または #white で白(ニュートラル)版に切替 */
+if(!location.search.includes('white')&&!location.hash.includes('white')) document.body.classList.add('glow');
+
+const N_VB={w:257.3,h:198.34};
+const logo=document.getElementById('logo');
+const wordmark=document.getElementById('wordmark');
+const stage=document.getElementById('stage');
+const hint=document.getElementById('hint');
+const copy2=document.getElementById('copy2');
+const markWrap=document.getElementById('markWrap');
+const markSub=document.getElementById('markSub');
+const nmFillG=document.getElementById('nmFillG');
+
+/* 波線：点列＋直線ベース(baseY)＋N凹凸プロファイル(prof) */
+const items=[];
+[...document.querySelectorAll('#waves .cls-1')].forEach((el,wi)=>{
+  const L=el.getTotalLength();
+  const n=Math.max(2,Math.ceil(L/2.4));
+  const pts=[],baseY=[],prof=[];
+  for(let k=0;k<=n;k++){const p=el.getPointAtLength(L*k/n);pts.push([p.x,p.y]);}
+  const y0=pts[0][1], yn=pts[n][1];
+  for(let j=0;j<=n;j++){const by=y0+(yn-y0)*(j/n);baseY.push(by);prof.push(pts[j][1]-by);}
+  items.push({el,pts,baseY,prof,wi});
+});
+const N=items.length;
+
+/* 背景アンビエント波線の点列（粗くサンプリング＝軽量） */
+const ambItems=[];
+[...document.querySelectorAll('#ambientLogo path')].forEach((el,wi)=>{
+  const L=el.getTotalLength();
+  const n=Math.max(2,Math.ceil(L/6));
+  const pts=[];
+  for(let k=0;k<=n;k++){const q=el.getPointAtLength(L*k/n);pts.push([q.x,q.y]);}
+  ambItems.push({el,pts,wi});
+});
+
+/* nerdaワードマーク stroke：各パス長 */
+const nmStrokes=[...document.querySelectorAll('#nerdaMark .nm-stroke')].map(el=>{
+  const L=el.getTotalLength();
+  el.style.strokeDasharray=L; el.style.strokeDashoffset=L;
+  return {el,L};
+});
+
+/* 確定パラメータ */
+const AMP=6, WAVES=1.6, PHASE=3, SPEED=4;
+
+/* 色補間 */
+const C={bgLight:[244,241,234],bgDark:[10,10,12],stLight:[35,24,21],stDark:[233,228,214]};
+const lerp=(a,b,t)=>a+(b-a)*t;
+const rgb=c=>`rgb(${Math.round(c[0])},${Math.round(c[1])},${Math.round(c[2])})`;
+const mix=(a,b,t)=>[lerp(a[0],b[0],t),lerp(a[1],b[1],t),lerp(a[2],b[2],t)];
+const clamp=(v,lo,hi)=>Math.max(lo,Math.min(hi,v));
+const smooth=(e0,e1,x)=>{const t=clamp((x-e0)/(e1-e0),0,1);return t*t*(3-2*t);};
+
+/* ズーム先：N中央 */
+const VB0={x:0,y:0,w:N_VB.w,h:N_VB.h};
+const ZC={cx:128.65,cy:88},ZW=66;
+const VB1={x:ZC.cx-ZW/2,y:ZC.cy-(ZW*N_VB.h/N_VB.w)/2,w:ZW,h:ZW*N_VB.h/N_VB.w};
+
+/* スクロール進行度（#p= で固定可：デバッグ用） */
+let progress=0,forced=null;
+function readForced(){const m=location.hash.match(/p=([0-9.]+)/);forced=m?parseFloat(m[1]):null;}
+readForced();addEventListener('hashchange',readForced);
+function updateProgress(){
+  if(forced!=null){progress=clamp(forced,0,1);return;}
+  const tell=document.getElementById('scrollytell');
+  const total=tell.offsetHeight-window.innerHeight;
+  progress=clamp((-tell.getBoundingClientRect().top)/total,0,1);
+}
+addEventListener('scroll',updateProgress,{passive:true});
+addEventListener('resize',updateProgress);
+updateProgress();
+
+/* ===== メインループ ===== */
+let t0=performance.now();
+function frame(now){
+  const p=progress;
+  if(p<0.999){  // 本文域(p=1)では演出を止めて軽量化
+
+  /* env: N→直線（0.58→0.80でほどける） */
+  const env=1-smooth(0.58,0.80,p);
+  const lineFade=1-smooth(0.78,0.92,p);  // 直線群フェードアウト
+
+  /* 波打ちアニメ（時間ベース・完全ループ）＋ envで直線化 */
+  const T=SPEED*1000, k=WAVES*Math.PI*2/N_VB.w;
+  const u=((now-t0)%T)/T, a=u*Math.PI*2;
+  items.forEach(it=>{
+    const ph=(it.wi/N)*Math.PI*2*PHASE;
+    const pts=it.pts;
+    let d='M';
+    for(let j=0;j<pts.length;j++){
+      const x=pts[j][0];
+      const yBase=it.baseY[j]+env*it.prof[j];          // N形⇔直線
+      const dy=AMP*env*Math.sin(a+k*x+ph);             // 波も直線化で鎮める
+      d+=(j?'L':'')+x.toFixed(2)+' '+(yBase+dy).toFixed(2)+' ';
+    }
+    it.el.setAttribute('d',d);
+    const fl=(0.55+0.45*(0.5+0.5*Math.cos(a+ph)));
+    it.el.style.opacity=(fl*lineFade).toFixed(3);
+  });
+
+  /* ズーム（0.10→0.50） */
+  const zp=smooth(0.10,0.50,p);
+  logo.setAttribute('viewBox',
+    `${lerp(VB0.x,VB1.x,zp)} ${lerp(VB0.y,VB1.y,zp)} ${lerp(VB0.w,VB1.w,zp)} ${lerp(VB0.h,VB1.h,zp)}`);
+
+  /* 背景・線色 light→dark（0.14→0.45） */
+  const bp=smooth(0.14,0.45,p);
+  const root=document.documentElement.style;
+  const bgc=mix(C.bgLight,C.bgDark,bp);
+  root.setProperty('--bg',rgb(bgc));
+  /* Scene3後半：stage背景を透明化→背後の ambient 線がシームレスに出現 */
+  stage.style.background=`rgba(${Math.round(bgc[0])},${Math.round(bgc[1])},${Math.round(bgc[2])},${(1-smooth(0.90,1.0,p)).toFixed(3)})`;
+  const st=rgb(mix(C.stLight,C.stDark,bp));
+  root.setProperty('--stroke',st);root.setProperty('--ink',st);
+  const blend=bp<0.5?'multiply':'screen';
+  document.querySelectorAll('#logo .cls-1').forEach(el=>{el.style.mixBlendMode=blend;});
+
+  /* hero wordmark：ズームで外れる＋フェード */
+  wordmark.style.opacity=(1-smooth(0.10,0.30,p)).toFixed(3);
+
+  /* scroll ヒント */
+  hint.style.opacity=(0.55*(1-smooth(0.03,0.10,p))).toFixed(3);
+
+  /* Scene 2 コピー（0.40→0.50 in / 0.55→0.62 out） */
+  copy2.style.opacity=(smooth(0.40,0.50,p)*(1-smooth(0.55,0.62,p))).toFixed(3);
+
+  /* Scene 3：nerda ストローク描画→塗りフェード→サブ */
+  const draw=smooth(0.80,0.95,p);
+  nmStrokes.forEach(s=>{s.el.style.strokeDashoffset=(s.L*(1-draw)).toFixed(1);});
+  markWrap.style.opacity=smooth(0.78,0.86,p).toFixed(3);
+  nmFillG.style.opacity=smooth(0.93,1.0,p).toFixed(3);
+  markSub.style.opacity=smooth(0.95,1.0,p).toFixed(3);
+  }  // if(p<0.999)
+
+  /* 背景アンビエント：各線が波打つ（stageが透ける p>0.85 以降だけ更新＝軽量） */
+  if(p>0.85){
+    const Ta=8000, ka=1.6*Math.PI*2/N_VB.w, aa=((now)%Ta)/Ta*Math.PI*2;
+    ambItems.forEach(it=>{
+      const ph=(it.wi/ambItems.length)*Math.PI*2*3;
+      let d='M';
+      for(let j=0;j<it.pts.length;j++){
+        const x=it.pts[j][0];
+        d+=(j?'L':'')+x.toFixed(1)+' '+(it.pts[j][1]+6*Math.sin(aa+ka*x+ph)).toFixed(1)+' ';
+      }
+      it.el.setAttribute('d',d);
+    });
+  }
+
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+
+/* nm-fill グループ全体の opacity 制御用（個別pathのopacity:0を打ち消す） */
+document.querySelectorAll('#nerdaMark .nm-fill').forEach(el=>{el.style.opacity=1;});
+nmFillG.style.opacity=0;
+
+/* デバッグ：#onlybody で演出を隠し本文だけ先頭に（headlessスクショ確認用） */
+if(location.hash.includes('onlybody')){document.getElementById('scrollytell').style.display='none';}
+/* デバッグ：#concept / #cta などで本文へジャンプ（#p=数値 とは排他） */
+(function(){const id=location.hash.slice(1);
+  if(id && /^[a-zA-Z]/.test(id) && id!=='onlybody'){const t=document.getElementById(id);if(t)t.scrollIntoView();}})();
+</script>
+</body>
+</html>
