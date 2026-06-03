@@ -32,7 +32,8 @@
   @media (prefers-reduced-motion: reduce){#ambientLogo{animation:none;}}
   /* モバイルはメモリ削減：背景SVGを縮小＋driftアニメ停止（GPUレイヤー常駐を回避） */
   @media (pointer:coarse),(max-width:768px){#ambientLogo{width:100vw;animation:none;}
-    #logo{filter:none;} body.glow #nerdaMark{filter:none;}}  /* モバイルは発光フィルタOFF＋背景配置調整（金線は残す。driftは負荷高なので停止維持） */
+    #logo{filter:none;} body.glow #nerdaMark{filter:none;}
+    #logo .cls-1,#ambientLogo path{mix-blend-mode:normal;}}  /* モバイル：発光・blend OFFでGPU合成バッファを削減（メモリ対策） */
 
   /* ===== スクロール演出ゾーン ===== */
   #scrollytell{height:1000vh;position:relative;z-index:1;}
@@ -334,6 +335,7 @@ function frame(now){
   fc++;
   const p=progress;
   if(p<0.999){  // 本文域(p=1)では演出を止めて軽量化
+  if(stage.style.display==='none')stage.style.display='';  // Scene域に戻ったらstage復活
 
   /* env: N→直線（0.58→0.80でほどける） */
   const env=1-smooth(0.58,0.80,p);
@@ -405,6 +407,7 @@ function frame(now){
     items.forEach(it=>{it.el.style.opacity='0';});
     nmStrokes.forEach(s=>{s.el.style.strokeDashoffset='0';});
     markWrap.style.opacity='1';nmFillG.style.opacity='1';markSub.style.opacity='1';
+    stage.style.display='none';  // 本文域：Scene大SVG(#logo/#nerdaMark)のレイヤーを破棄しメモリ解放（往復クラッシュ対策）
   }  // if(p<0.999)
 
   /* 背景アンビエント：各線が波打つ（モバイルは負荷対策で静止／PCはScene3毎フレーム・本文は2フレームに1回） */
