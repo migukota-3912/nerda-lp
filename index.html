@@ -31,7 +31,8 @@
     stroke-miterlimit:10;vector-effect:non-scaling-stroke;mix-blend-mode:screen;}
   @media (prefers-reduced-motion: reduce){#ambientLogo{animation:none;}}
   /* モバイルはメモリ削減：背景SVGを縮小＋driftアニメ停止（GPUレイヤー常駐を回避） */
-  @media (pointer:coarse){#ambientLogo{width:100vmax;animation:none;}}
+  @media (pointer:coarse){#ambientLogo{width:100vmax;animation:none;}
+    #logo{filter:none;} body.glow #nerdaMark{filter:none;}}  /* モバイルは発光フィルタOFF＝GPU負荷減（金線自体は残る） */
 
   /* ===== スクロール演出ゾーン ===== */
   #scrollytell{height:1000vh;position:relative;z-index:1;}
@@ -343,13 +344,19 @@ function frame(now){
   items.forEach(it=>{
     const ph=(it.wi/N)*Math.PI*2*PHASE;
     const pts=it.pts;
-    let d='M';
-    for(let j=0;j<pts.length;j++){
+    const m=pts.length, ys=new Array(m);
+    for(let j=0;j<m;j++){
       const x=pts[j][0];
       const yBase=it.baseY[j]+env*it.prof[j];          // N形⇔直線
-      const dy=AMP*env*Math.sin(a+k*x+ph);             // 波も直線化で鎮める
-      d+=(j?'L':'')+x.toFixed(2)+' '+(yBase+dy).toFixed(2)+' ';
+      ys[j]=yBase+AMP*env*Math.sin(a+k*x+ph);          // 波も直線化で鎮める
     }
+    /* 中点二次ベジェで滑らかに繋ぐ（少ない点でもギザらない） */
+    let d='M'+pts[0][0].toFixed(2)+' '+ys[0].toFixed(2);
+    for(let j=1;j<m-1;j++){
+      const mx=(pts[j][0]+pts[j+1][0])/2, my=(ys[j]+ys[j+1])/2;
+      d+=' Q'+pts[j][0].toFixed(2)+' '+ys[j].toFixed(2)+' '+mx.toFixed(2)+' '+my.toFixed(2);
+    }
+    d+=' L'+pts[m-1][0].toFixed(2)+' '+ys[m-1].toFixed(2);
     it.el.setAttribute('d',d);
     const fl=(0.55+0.45*(0.5+0.5*Math.cos(a+ph)));
     it.el.style.opacity=(fl*lineFade).toFixed(3);
@@ -394,11 +401,14 @@ function frame(now){
     const Ta=8000, ka=1.6*Math.PI*2/N_VB.w, aa=((now)%Ta)/Ta*Math.PI*2;
     ambItems.forEach(it=>{
       const ph=(it.wi/ambItems.length)*Math.PI*2*3;
-      let d='M';
-      for(let j=0;j<it.pts.length;j++){
-        const x=it.pts[j][0];
-        d+=(j?'L':'')+x.toFixed(1)+' '+(it.pts[j][1]+6*Math.sin(aa+ka*x+ph)).toFixed(1)+' ';
+      const ap=it.pts, am=ap.length, ay=new Array(am);
+      for(let j=0;j<am;j++){ay[j]=ap[j][1]+6*Math.sin(aa+ka*ap[j][0]+ph);}
+      let d='M'+ap[0][0].toFixed(1)+' '+ay[0].toFixed(1);
+      for(let j=1;j<am-1;j++){
+        const mx=(ap[j][0]+ap[j+1][0])/2, my=(ay[j]+ay[j+1])/2;
+        d+=' Q'+ap[j][0].toFixed(1)+' '+ay[j].toFixed(1)+' '+mx.toFixed(1)+' '+my.toFixed(1);
       }
+      d+=' L'+ap[am-1][0].toFixed(1)+' '+ay[am-1].toFixed(1);
       it.el.setAttribute('d',d);
     });
   }
