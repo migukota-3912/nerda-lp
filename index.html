@@ -256,11 +256,16 @@ const markWrap=document.getElementById('markWrap');
 const markSub=document.getElementById('markSub');
 const nmFillG=document.getElementById('nmFillG');
 
+/* モバイル(タッチ端末/狭幅)は点列を粗くしてメインループを軽量化（見た目はほぼ不変） */
+const COARSE=matchMedia('(pointer:coarse)').matches||innerWidth<768;
+const STEP=COARSE?4.2:2.4;      // 波線サンプリング間隔(px)：小さいほど滑らか＆重い
+const AMB_STEP=COARSE?10:6;     // 背景アンビエント波線
+
 /* 波線：点列＋直線ベース(baseY)＋N凹凸プロファイル(prof) */
 const items=[];
 [...document.querySelectorAll('#waves .cls-1')].forEach((el,wi)=>{
   const L=el.getTotalLength();
-  const n=Math.max(2,Math.ceil(L/2.4));
+  const n=Math.max(2,Math.ceil(L/STEP));
   const pts=[],baseY=[],prof=[];
   for(let k=0;k<=n;k++){const p=el.getPointAtLength(L*k/n);pts.push([p.x,p.y]);}
   const y0=pts[0][1], yn=pts[n][1];
@@ -273,7 +278,7 @@ const N=items.length;
 const ambItems=[];
 [...document.querySelectorAll('#ambientLogo path')].forEach((el,wi)=>{
   const L=el.getTotalLength();
-  const n=Math.max(2,Math.ceil(L/6));
+  const n=Math.max(2,Math.ceil(L/AMB_STEP));
   const pts=[];
   for(let k=0;k<=n;k++){const q=el.getPointAtLength(L*k/n);pts.push([q.x,q.y]);}
   ambItems.push({el,pts,wi});
@@ -318,6 +323,7 @@ updateProgress();
 
 /* ===== メインループ ===== */
 let t0=performance.now();
+let lastBlend='';  // blend mode は切替時のみ適用（毎フレームの querySelectorAll を回避）
 function frame(now){
   const p=progress;
   if(p<0.999){  // 本文域(p=1)では演出を止めて軽量化
@@ -359,7 +365,7 @@ function frame(now){
   const st=rgb(mix(C.stLight,C.stDark,bp));
   root.setProperty('--stroke',st);root.setProperty('--ink',st);
   const blend=bp<0.5?'multiply':'screen';
-  document.querySelectorAll('#logo .cls-1').forEach(el=>{el.style.mixBlendMode=blend;});
+  if(blend!==lastBlend){lastBlend=blend;items.forEach(it=>{it.el.style.mixBlendMode=blend;});}
 
   /* hero wordmark：ズームで外れる＋フェード */
   wordmark.style.opacity=(1-smooth(0.10,0.30,p)).toFixed(3);
