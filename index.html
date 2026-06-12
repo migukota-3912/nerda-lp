@@ -109,6 +109,8 @@
   .igbtn svg{width:20px;height:20px;}
   #cta .foot{margin-top:54px;font-size:11px;letter-spacing:.32em;color:#4a473f;
     text-transform:uppercase;font-family:'JetBrains Mono','SF Mono',monospace;}
+  #cta .analytics-note{margin-top:14px;font-size:9px;letter-spacing:.06em;color:#33312c;
+    font-family:'JetBrains Mono','SF Mono',monospace;}
 
   @media (prefers-reduced-motion: reduce){#hint .arrow{animation:none;}}
 </style>
@@ -240,6 +242,7 @@
     Instagram
   </a>
   <div class="foot">NERDA</div>
+  <div class="analytics-note">Analytics: GoatCounter (no cookies, no personal data)</div>
 </section>
 
 <!-- scroll ヒント -->
@@ -440,6 +443,12 @@ if(location.hash.includes('onlybody')){document.getElementById('scrollytell').st
 /* デバッグ：#concept / #cta などで本文へジャンプ（#p=数値 とは排他） */
 (function(){const id=location.hash.slice(1);
   if(id && /^[a-zA-Z]/.test(id) && id!=='onlybody'){const t=document.getElementById(id);if(t)t.scrollIntoView();}})();
+
+/* アクセス計測（GoatCounter、Cookieなし）：Instagramボタンのクリックをイベントとして送信 */
+document.getElementById('igLink').addEventListener('click',function(){
+  if(window.goatcounter && goatcounter.count) goatcounter.count({path:'cta-instagram',title:'Instagram CTA',event:true});
+});
 </script>
+<script data-goatcounter="https://nerda.goatcounter.com/count" async src="count.js"></script>
 </body>
 </html>
